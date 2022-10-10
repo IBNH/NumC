@@ -48,7 +48,6 @@ void rand_matrix(matrix *result, unsigned int seed, double low, double high) {
  * You may assume `row` and `col` are valid. Note that the matrix is in row-major order.
  */
 double get(matrix *mat, int row, int col) {
-    // Task 1.1 TODO
     return (mat->data)[row * mat->cols + col];
 }
 
@@ -71,16 +70,6 @@ void set(matrix *mat, int row, int col, double val) {
  * Return 0 upon success.
  */
 int allocate_matrix(matrix **mat, int rows, int cols) {
-    // Task 1.2 TODO
-    // HINTS: Follow these steps.
-    // 1. Check if the dimensions are valid. Return -1 if either dimension is not positive.
-    // 2. Allocate space for the new matrix struct. Return -2 if allocating memory failed.
-    // 3. Allocate space for the matrix data, initializing all entries to be 0. Return -2 if allocating memory failed.
-    // 4. Set the number of rows and columns in the matrix struct according to the arguments provided.
-    // 5. Set the `parent` field to NULL, since this matrix was not created from a slice.
-    // 6. Set the `ref_cnt` field to 1.
-    // 7. Store the address of the allocated matrix struct at the location `mat` is pointing at.
-    // 8. Return 0 upon success.
     if (rows < 1 || cols < 1) {
         return -1;
     }
@@ -109,12 +98,6 @@ int allocate_matrix(matrix **mat, int rows, int cols) {
  * matrix has no other references (including itself).
  */
 void deallocate_matrix(matrix *mat) {
-    // Task 1.3 TODO
-    // HINTS: Follow these steps.
-    // 1. If the matrix pointer `mat` is NULL, return.
-    // 2. If `mat` has no parent: decrement its `ref_cnt` field by 1. If the `ref_cnt` field becomes 0, then free `mat` and its `data` field.
-    // 3. Otherwise, recursively call `deallocate_matrix` on `mat`'s parent, then free `mat`.
-    
     if (mat == NULL) {
         return;
     }
@@ -146,16 +129,6 @@ void deallocate_matrix(matrix *mat) {
  * there is no need to allocate space for matrix data.
  */
 int allocate_matrix_ref(matrix **mat, matrix *from, int offset, int rows, int cols) {
-    // Task 1.4 TODO
-    // HINTS: Follow these steps.
-    // 1. Check if the dimensions are valid. Return -1 if either dimension is not positive.
-    // 2. Allocate space for the new matrix struct. Return -2 if allocating memory failed.
-    // 3. Set the `data` field of the new struct to be the `data` field of the `from` struct plus `offset`.
-    // 4. Set the number of rows and columns in the new struct according to the arguments provided.
-    // 5. Set the `parent` field of the new struct to the `from` struct pointer.
-    // 6. Increment the `ref_cnt` field of the `from` struct by 1.
-    // 7. Store the address of the allocated matrix struct at the location `mat` is pointing at.
-    // 8. Return 0 upon success.
     if (rows < 1 || cols < 1) {
         return -1;
     }
@@ -177,7 +150,6 @@ int allocate_matrix_ref(matrix **mat, matrix *from, int offset, int rows, int co
  * Sets all entries in mat to val. Note that the matrix is in row-major order.
  */
 void fill_matrix(matrix *mat, double val) {
-    // Task 1.5 TODO
     __m256d val_vec = _mm256_set1_pd(val);
     int end = mat->rows * mat->cols / 4 * 4;
 
@@ -198,7 +170,6 @@ void fill_matrix(matrix *mat, double val) {
  * Note that the matrix is in row-major order.
  */
 int abs_matrix(matrix *result, matrix *mat) {
-    // Task 1.5 TODO
 
     int end = mat->rows * mat->cols / 4 * 4;
     __m256d neg_vec = _mm256_set1_pd(-1.0);
@@ -235,7 +206,6 @@ int neg_matrix(matrix *result, matrix *mat) {
  * Note that the matrix is in row-major order.
  */
 int add_matrix(matrix *result, matrix *mat1, matrix *mat2) {
-    // Task 1.5 TODO
     int end = mat1->rows * mat1->cols / 4 * 4;
 
     #pragma omp parallel for
@@ -259,7 +229,6 @@ int add_matrix(matrix *result, matrix *mat1, matrix *mat2) {
  * Note that the matrix is in row-major order.
  */
 int sub_matrix(matrix *result, matrix *mat1, matrix *mat2) {
-    // Task 1.5 TODO
     return 0;
 }
 
@@ -271,24 +240,8 @@ int sub_matrix(matrix *result, matrix *mat1, matrix *mat2) {
  * Note that the matrix is in row-major order.
  */
 int mul_matrix(matrix *result, matrix *mat1, matrix *mat2) {
-    // Task 1.6 TODO
     
-    
-    /*
-    int total;
-    //#pragma omp parallel for collapse(2)
-    for (int i = 0; i < mat1->rows; i++) {
-        for (int k = 0; k < mat2->cols; k++) {
-            total = 0;
-            for (int j = 0; j < mat1->cols; j++) {
-                total += get(mat1, i, j) * get(mat2, j, k);
-            }
-            set(result, i, k, total);
-            //printf("i, k: %f ", get(result, i, k));
-        }
-    }
-    
-    */
+ 
     matrix *mat_trans = NULL;
     allocate_matrix(&mat_trans, mat2->cols, mat2->rows);
     #pragma omp parallel for collapse (2)
@@ -308,33 +261,6 @@ int mul_matrix(matrix *result, matrix *mat1, matrix *mat2) {
                 __m256d mat2_row = _mm256_loadu_pd(mat_trans->data + k * (mat_trans->cols) + j);
                 vec = _mm256_fmadd_pd(mat1_row, mat2_row, vec);
             }
-            
-            /*
-            
-            for (unsigned int j = 0; j < mat1->cols / 16 * 16; j += 16) {
-                __m256d mat1_row = _mm256_loadu_pd(mat1->data + i * (mat1->cols) + j);
-                __m256d mat2_row = _mm256_loadu_pd(mat_trans->data + k * (mat_trans->cols) + j);
-                vec = _mm256_fmadd_pd(mat1_row, mat2_row, vec);
-
-                mat1_row = _mm256_loadu_pd(mat1->data + i * (mat1->cols) + j + 4);
-                mat2_row = _mm256_loadu_pd(mat_trans->data + k * (mat_trans->cols) + j + 4);
-                vec = _mm256_fmadd_pd(mat1_row, mat2_row, vec);
-
-                mat1_row = _mm256_loadu_pd(mat1->data + i * (mat1->cols) + j + 8);
-                mat2_row = _mm256_loadu_pd(mat_trans->data + k * (mat_trans->cols) + j + 8);
-                vec = _mm256_fmadd_pd(mat1_row, mat2_row, vec);
-
-                mat1_row = _mm256_loadu_pd(mat1->data + i * (mat1->cols) + j + 12);
-                mat2_row = _mm256_loadu_pd(mat_trans->data + k * (mat_trans->cols) + j + 12);
-                vec = _mm256_fmadd_pd(mat1_row, mat2_row, vec);
-            }
-
-            for (unsigned int j = mat1->cols / 16 * 16; mat1->cols / 4 * 4; j += 4) {
-                __m256d mat1_row = _mm256_loadu_pd(mat1->data + i * (mat1->cols) + j);
-                __m256d mat2_row = _mm256_loadu_pd(mat_trans->data + k * (mat_trans)->cols + j);
-                vec = _mm256_fmadd_pd(mat1_row, mat2_row, vec);
-            }
-            */
             
             double temp_arr[4];
             _mm256_storeu_pd(temp_arr, vec);
@@ -364,7 +290,6 @@ int mul_matrix(matrix *result, matrix *mat1, matrix *mat2) {
  * Note that the matrix is in row-major order.
  */
 int pow_matrix(matrix *result, matrix *mat, int pow) {
-    // Task 1.6 TODO
     matrix *factor1 = NULL;
     allocate_matrix(&factor1, mat->rows, mat->cols);
 
